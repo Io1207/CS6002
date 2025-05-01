@@ -34,6 +34,8 @@ discount_factors = {
     "Long-term": 0.97
 }
 
+discount_factors={str(k*0.05):0.05*k for k in range(10,20)}
+
 plt.figure(figsize=(12, 6))
 for label, delta in discount_factors.items():
     discounted_values = [delta**t * skill_values[skill] for t, skill in enumerate(skill_path)]
@@ -46,6 +48,6 @@ plt.title("Cumulative Discounted Value under Different Company Orientations")
 plt.xlabel("Time")
 plt.ylabel("Cumulative Value")
 plt.legend()
-plt.grid(True)
+plt.grid(False)
 plt.tight_layout()
 plt.show()
