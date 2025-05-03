@@ -1,58 +1,69 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+import random
 
-# Time settings
-T = 10  # number of periods
-delta = 0.9  # discount factor
+T = 100
+gamma = 3 #exponential decay factor
+'''
+gamma=1 -> Dynamic always better
+gamma=5 -> Static leads
+'''
+
 time = np.arange(T)
+delta = 0.8 #discount factor
+skill_vals = [0,1,2]
 
-# Skill growth paths for two employees
-# Fast learner: Basic → Intermediate → Advanced quickly
-fast_growth=[3]*T
-i=0
-for i in range(T//10):
-    fast_growth[i]=1
-for i in range(i,T//5):
-    fast_growth[i]=2
+def simulate_skill_path(init_prob, final_prob, T=10, seed=None):
+    if seed is not None:
+        np.random.seed(seed)
+    skill_values = [0]  # start at Basic skill level
+    for t in range(1, T):
+        transition_prob = final_prob * (1 - np.exp((-t+1)/gamma)) + init_prob * np.exp((-t+1)/gamma) 
+        current   = skill_values[-1]
+        weights   = list(transition_prob[current])
+        new_level = np.random.choice(skill_vals, p=weights)
+        skill_values.append(new_level)
+    return skill_values
 
-# Slow learner: Stays at Basic longer
-slow_growth = [3]*T
-i=0
-for i in range(T//5):
-    fast_growth[i]=1
-for i in range(i,T//2):
-    fast_growth[i]=2
+def plot_values(label , skill_path):
+    discounted_values = [delta**t * skill_vals[skill] for t, skill in enumerate(skill_path)]
+    cumulative_values = np.cumsum(discounted_values)
+    plt.plot(time, cumulative_values, label=label)
 
-# Value function for skill levels
-def skill_value(level):
-    return {1: 1, 2: 2, 3: 3}[level]
 
-# Compute discounted values
-def discounted_values(skill_path):
-    return np.array([delta**t * skill_value(skill_path[t]) for t in time])
+static_prob =  np.array([
+    [0.6, 0.3, 0.1],
+    [0.2, 0.6, 0.2],
+    [0.1, 0.3, 0.6],
+])
 
-# Compute cumulative discounted value
-def cumulative_discounted(values):
-    return np.cumsum(values)
 
-# Get values
-fast_values = discounted_values(fast_growth)
-slow_values = discounted_values(slow_growth)
+init_prob = np.array([
+    [0.8, 0.2, 0.0],  
+    [0.6, 0.3, 0.1],  
+    [0.4, 0.4, 0.2]  
+])
 
-fast_cum = cumulative_discounted(fast_values)
-slow_cum = cumulative_discounted(slow_values)
+final_prob = np.array([
+    [0.2, 0.6, 0.2],  
+    [0.1, 0.4, 0.5], 
+    [0.0, 0.1, 0.9]   
+])
 
-# Plotting
-plt.figure(figsize=(10, 6))
-plt.plot(time, fast_values, label='Fast Learner (Per Period Value)')
-plt.plot(time, slow_values, linestyle='dotted', label='Slow Learner (Per Period Value)')
-plt.plot(time, fast_cum,linestyle='--', label='Fast Learner (Cumulative Value)')
-plt.plot(time, slow_cum,linestyle='--', label='Slow Learner (Cumulative Value)')
-plt.xticks(time)
-plt.xlabel('Time Period')
-plt.ylabel('Value')
-plt.title('Comparing Dynamic Skill Value: Fast vs Slow Learner')
+
+skill_path = simulate_skill_path(static_prob , static_prob, T, seed=42)
+plot_values("Static Agent",skill_path)
+
+skill_path = simulate_skill_path(init_prob , final_prob, T, seed=42)
+plot_values("Dynamic Agent",skill_path)
+
+
+title=f"Cumulative Discounted Value for \n Different Employees Gamma= {gamma:.0f}"
+plt.title(title)
+plt.xlabel("Time")
+plt.ylabel("Cumulative Value")
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+
